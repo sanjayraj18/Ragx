@@ -2,7 +2,9 @@
 name = "ragx"              
 version = "0.1.0"         
 requires-python = ">=3.12" 
-dependencies = []         
+dependencies = [
+    "pydantic-settings>=2.14.2",
+]         
 
 [dependency-groups]
 dev = ["mypy", "pytest", "ruff"] 
@@ -28,6 +30,7 @@ strict = true
 mypy_path = "src"
 packages = ["ragx"]
 pretty = true
+plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
