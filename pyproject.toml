@@ -1,0 +1,37 @@
+[project]
+name = "ragx"              
+version = "0.1.0"         
+requires-python = ">=3.12" 
+dependencies = []         
+
+[dependency-groups]
+dev = ["mypy", "pytest", "ruff"] 
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ragx"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "C4", "T20", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["ragx"]
+pretty = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "integration: requires real infrastructure (database, network)",
+]
