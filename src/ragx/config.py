@@ -7,6 +7,7 @@ refuses to boot on invalid config) and are immutable afterwards.
 from enum import StrEnum
 from functools import lru_cache
 from typing import Literal, Self
+
 from pydantic import Field, PostgresDsn, RedisDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -34,7 +35,7 @@ class Settings(BaseSettings):
             default="postgresql+asyncpg://ragx:ragx@localhost:5432/ragx",  # type: ignore[assignment]
             description="Async SQLAlchemy DSN. Dev default matches docker-compose.",
         )
-    
+
     redis_url: RedisDsn = Field(
             default="redis://localhost:6379/0",  # type: ignore[assignment]
             description="Broker/cache. Dev default matches docker-compose.",
@@ -49,4 +50,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-    
+

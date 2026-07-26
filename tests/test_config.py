@@ -3,6 +3,7 @@
 
 import pytest
 from pydantic import ValidationError
+
 from ragx.config import Environment, Settings
 
 
