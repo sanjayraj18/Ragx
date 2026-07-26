@@ -58,3 +58,8 @@ def configure_logging(settings : Settings) -> None:
     root.handlers.clear()
     root.addHandler(handler)
     root.setLevel(settings.log_level)
+
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+          uvicorn_logger = logging.getLogger(name)
+          uvicorn_logger.handlers.clear()
+          uvicorn_logger.propagate = True

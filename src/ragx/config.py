@@ -41,12 +41,16 @@ class Settings(BaseSettings):
             description="Broker/cache. Dev default matches docker-compose.",
         )
 
+
+    '''model validator checks the whole condition is true or false'''
     @model_validator(mode="after")
     def production_must_not_debug(self) -> Self:
         if self.environment is Environment.PRODUCTION and self.debug:
             raise ValueError("debug=True is forbidden in production")
         return self
 
+
+'''memoize the function thatwhy lru_cache'''
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
