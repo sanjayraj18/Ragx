@@ -1,8 +1,12 @@
+from collections.abc import AsyncIterator
+
 from fastapi.testclient import TestClient
 
 from ragx.api.app import create_app
+from ragx.api.deps import get_session
 from ragx.config import Environment, Settings
 from ragx.errors import NotFoundError
+
 
 def _settings(**overrides: object) -> Settings:
       return Settings(_env_file=None, environment=Environment.TEST, **overrides)  # type: ignore[arg-type]
@@ -52,8 +56,24 @@ def test_healthz_ok() -> None:
       assert response.json() == {"status": "ok"}
 
 
+class _FakeSession:
+      """A stand-in session whose SELECT 1 always succeeds — the DB is 'reachable'."""
+
+      async def execute(self, _statement: object) -> None:
+          return None
+
+
 def test_readyz_ok() -> None:
-      assert TestClient(create_app(_settings())).get("/readyz").status_code == 200
+      app = create_app(_settings())
+
+      async def fake_session() -> AsyncIterator[_FakeSession]:
+          yield _FakeSession()
+
+      app.dependency_overrides[get_session] = fake_session
+
+      response = TestClient(app).get("/readyz")
+      assert response.status_code == 200
+      assert response.json() == {"status": "ready"}
 
 
 def test_every_response_carries_a_request_id() -> None:
@@ -72,3 +92,9 @@ def test_unknown_route_uses_the_same_envelope() -> None:
       response = TestClient(create_app(_settings())).get("/no-such-path")
       assert response.status_code == 404
       assert response.json()["error"]["code"] == "http_error"
+
+def test_readyz_reports_not_ready_when_database_is_unreachable() -> None:
+      with TestClient(create_app(_settings())) as client:
+          response = client.get("/readyz")
+      assert response.status_code == 503
+      assert response.json() == {"status": "not_ready"}
