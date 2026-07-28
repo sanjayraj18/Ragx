@@ -47,7 +47,7 @@ plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q --strict-markers"
+addopts = "-q --strict-markers -m 'not integration'"
 markers = [
     "integration: requires real infrastructure (database, network)",
 ]

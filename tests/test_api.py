@@ -50,8 +50,8 @@ def test_unexpected_error_returns_500_and_never_leaks() -> None:
       assert "secret" not in response.text
       assert response.json()["error"]["code"] == "internal_error"
 
-def test_healthz_ok() -> None:
-      response = TestClient(create_app(_settings())).get("/healthz")
+def test_healthz_ok(client: TestClient) -> None:
+      response = client.get("/healthz")
       assert response.status_code == 200
       assert response.json() == {"status": "ok"}
 
