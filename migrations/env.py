@@ -7,6 +7,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from ragx.config import get_settings
+import ragx.db.models 
 from ragx.db.base import Base
 
 # access to the values within the .ini file in use.
