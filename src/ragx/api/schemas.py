@@ -19,3 +19,11 @@ class UserResponse(BaseModel):
     tenant_id: uuid.UUID
     email: EmailStr
     is_active: bool
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

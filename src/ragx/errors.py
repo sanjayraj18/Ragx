@@ -22,3 +22,7 @@ class NotFoundError(RagxError):
 class ConflictError(RagxError):
     code="conflict"
     status_code=409
+
+class UnauthorizedError(RagxError):
+      code = "unauthorized"
+      status_code = 401

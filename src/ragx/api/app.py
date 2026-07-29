@@ -37,6 +37,7 @@ def create_app(settings : Settings | None = None) -> FastAPI:
     async def lifespan(app : FastAPI) -> AsyncIterator[None]:
         engine = create_engine(settings)
         app.state.session_factory = create_session_factory(engine)
+        app.state.settings = settings
         log.info("app_started", environment=settings.environment)
         yield
         await engine.dispose()

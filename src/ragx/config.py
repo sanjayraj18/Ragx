@@ -8,7 +8,7 @@ from enum import StrEnum
 from functools import lru_cache
 from typing import Literal, Self
 
-from pydantic import Field, PostgresDsn, RedisDsn, model_validator
+from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -41,6 +41,9 @@ class Settings(BaseSettings):
             description="Broker/cache. Dev default matches docker-compose.",
         )
 
+    secret_key : SecretStr = SecretStr("dev-insecure-secret-key")
+    access_token_expire_minutes : int = 60
+
 
     '''model validator checks the whole condition is true or false'''
     @model_validator(mode="after")
@@ -49,6 +52,14 @@ class Settings(BaseSettings):
             raise ValueError("debug=True is forbidden in production")
         return self
 
+    @model_validator(mode="after")
+    def production_needs_real_secret(self) -> Self:
+          if (
+              self.environment is Environment.PRODUCTION
+              and self.secret_key.get_secret_value() == "dev-insecure-secret-key"
+          ):
+              raise ValueError("RAGX_SECRET_KEY must be set to a real secret in production")
+          return self
 
 '''memoize the function thatwhy lru_cache'''
 @lru_cache
