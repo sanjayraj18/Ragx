@@ -17,6 +17,7 @@ from ragx.api.health import router as health_router
 from ragx.api.keys import router as keys_router
 from ragx.api.tenant import router as tenant_router
 
+
 from ragx.api.middleware import RequestContextMiddleware
 from ragx.config import Settings, get_settings
 from ragx.db.session import create_engine, create_session_factory
