@@ -27,3 +27,17 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+class ApiKeyCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+
+class ApiKeyResponse(BaseModel):
+      model_config = ConfigDict(from_attributes=True)
+
+      id: uuid.UUID
+      name: str
+      key_prefix: str
+      is_active: bool
+
+class ApiKeyCreatedResponse(ApiKeyResponse):
+      api_key: str

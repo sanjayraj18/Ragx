@@ -31,3 +31,13 @@ class User(Base, TimestampMixin):
     is_active : Mapped[bool] = mapped_column(default=True)
 
     tenant : Mapped[Tenant] = relationship(back_populates="users")
+
+class ApiKey(Base, TimestampMixin):
+    __tablename__ = "api_keys"
+
+    id : Mapped[uuid.UUID] = mapped_column(primary_key=True,default=uuid7)
+    tenant_id : Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), index=True)
+    name : Mapped[str] =mapped_column(String(256))
+    key_prefix : Mapped[str] =mapped_column(String(16))
+    key_hash : Mapped[str] = mapped_column(String(64), unique=True)
+    is_active :Mapped[bool] = mapped_column(default=True)

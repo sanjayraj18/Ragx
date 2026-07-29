@@ -7,6 +7,8 @@
 
 import datetime
 import uuid
+import hashlib
+import secrets
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
@@ -16,6 +18,7 @@ from ragx.errors import UnauthorizedError
 
 _hasher = PasswordHasher()
 _ALGORITHM = "HS256"
+_API_KEY_PREFIX = "ragx_"
 
 def hashPassword(password : str) -> str:
     return _hasher.hash(password)
@@ -42,3 +45,11 @@ def decode_access_token(token : str, secret_key : str) -> dict[str,str]:
         return jwt.verify(token, secret_key,algorithm=_ALGORITHM)
     except jwt.InvalidTokenError as exc:
         raise UnauthorizedError("invalid or expired token") from exc
+
+def generate_api_key() -> tuple[str,str]:
+    """Return (plaintext, hash). The plaintext is shown once and never stored."""
+    plain_text = _API_KEY_PREFIX + secrets.token_urlsafe(32)
+    return plain_text , hash_api_key(plain_text)
+
+def hash_api_key(key: str) -> str:
+    return hashlib.sha256(key.encode()).hexdigest()
