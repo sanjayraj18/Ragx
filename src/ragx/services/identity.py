@@ -5,6 +5,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ragx.api.deps import TenantContextDep
 from ragx.logging import get_logger
 from ragx.db.models.identity import ApiKey, Tenant, User
 from ragx.errors import ConflictError, UnauthorizedError
@@ -40,21 +41,21 @@ async def authenticate(session :AsyncSession, email : str, password : str) -> Us
     return user
 
 
-async def create_api_key(session: AsyncSession, *, tenant_id: uuid.UUID, name: str) -> tuple[ApiKey, str]:
+async def create_api_key(session: AsyncSession, *, ctx : TenantContextDep, name: str) -> tuple[ApiKey, str]:
       plaintext, key_hash = generate_api_key()
       api_key = ApiKey(
-          tenant_id=tenant_id,
+          tenant_id=ctx.tenant_id,
           name=name,
           key_prefix=plaintext[:10],
           key_hash=key_hash,
       )
       session.add(api_key)
       await session.flush()
-      log.info("api_key_created", tenant_id=str(tenant_id), api_key_id=str(api_key.id))
+      log.info("api_key_created", tenant_id=str(ctx.tenant_id), api_key_id=str(api_key.id))
       return api_key, plaintext
     
-async def list_api_keys(session: AsyncSession, *, tenant_id: uuid.UUID) -> list[ApiKey]:
-      result = await session.scalars(select(ApiKey).where(ApiKey.tenant_id == tenant_id).order_by(ApiKey.created_at))
+async def list_api_keys(session: AsyncSession, *,ctx : TenantContextDep) -> list[ApiKey]:
+      result = await session.scalars(select(ApiKey).where(ApiKey.tenant_id == ctx.tenant_id).order_by(ApiKey.created_at))
       return list(result)
 
 async def authenticate_api_key(session: AsyncSession, *, key: str) -> ApiKey:
