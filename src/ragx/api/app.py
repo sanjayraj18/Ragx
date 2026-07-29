@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from ragx.api.auth import router as auth_router
 from ragx.api.health import router as health_router
 from ragx.api.middleware import RequestContextMiddleware
 from ragx.config import Settings, get_settings
@@ -49,6 +50,7 @@ def create_app(settings : Settings | None = None) -> FastAPI:
 
     app.add_middleware(RequestContextMiddleware)
     app.include_router(health_router)
+    app.include_router(auth_router)
 
     @app.exception_handler(RagxError)
     async def handle_domain_error(request: Request, exc: RagxError) ->JSONResponse:

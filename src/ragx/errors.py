@@ -19,6 +19,6 @@ class NotFoundError(RagxError):
     code ="not_found"
     status_code=404
 
-class ConfilctError(RagxError):
+class ConflictError(RagxError):
     code="conflict"
     status_code=409
