@@ -7,6 +7,7 @@ hashes leak)."""
 import uuid
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from datetime import datetime
 
 
 class RegisterRequest(BaseModel):
@@ -57,3 +58,18 @@ class TenantResponse(BaseModel):
     id: uuid.UUID
     name: str
     is_active: bool
+
+class KnowledgeBaseCreateRequest(BaseModel):
+      name: str = Field(min_length=1, max_length=255)
+      description: str = Field(default="", max_length=2000)
+
+class KnowledgeBaseResponse(BaseModel):
+      model_config = ConfigDict(from_attributes=True)
+
+      id: uuid.UUID
+      name: str
+      description: str
+      chunk_size: int
+      chunk_overlap: int
+      embedding_model: str
+      created_at: datetime

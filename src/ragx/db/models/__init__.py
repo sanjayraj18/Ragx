@@ -2,9 +2,6 @@
 registers every table on Base.metadata (Alembic autogenerate reads that)."""
 
 from ragx.db.models.identity import ApiKey, Tenant, User
+from ragx.db.models.knowledge import KnowledgeBase
 
-__all__ = [
-    "ApiKey",
-    "Tenant",
-    "User",
-]
+__all__ = ["ApiKey", "KnowledgeBase", "Tenant", "User"]

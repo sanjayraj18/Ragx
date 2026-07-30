@@ -94,8 +94,10 @@ async def get_tenant_context(
 
 TenantContextDep = Annotated[TenantContext, Depends(get_tenant_context)]
 
-def get_storage(request: Request) ->BlobStorage:
-    storage : BlobStorage = request.app.state.storage
+
+def get_storage(request: Request) -> BlobStorage:
+    storage: BlobStorage = request.app.state.storage
     return storage
+
 
 StorageDep = Annotated[BlobStorage, Depends(get_storage)]
