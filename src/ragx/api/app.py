@@ -21,6 +21,7 @@ from ragx.config import Settings, get_settings
 from ragx.db.session import create_engine, create_session_factory
 from ragx.errors import RagxError
 from ragx.logging import configure_logging, get_logger
+from ragx.storage.local import LocalStorage
 
 log = get_logger(__name__)
 
@@ -41,6 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         engine = create_engine(settings)
         app.state.session_factory = create_session_factory(engine)
         app.state.settings = settings
+        app.state.storage = LocalStorage(root=settings.storage_root)
         log.info("app_started", environment=settings.environment)
         yield
         await engine.dispose()

@@ -20,6 +20,7 @@ from ragx.db.models.identity import User
 from ragx.errors import UnauthorizedError
 from ragx.security import decode_access_token
 from ragx.services.identity import authenticate_api_key
+from ragx.storage.base import BlobStorage
 
 
 async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
@@ -92,3 +93,9 @@ async def get_tenant_context(
 
 
 TenantContextDep = Annotated[TenantContext, Depends(get_tenant_context)]
+
+def get_storage(request: Request) ->BlobStorage:
+    storage : BlobStorage = request.app.state.storage
+    return storage
+
+StorageDep = Annotated[BlobStorage, Depends(get_storage)]
