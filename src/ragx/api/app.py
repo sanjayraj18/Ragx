@@ -15,10 +15,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from ragx.api.auth import router as auth_router
 from ragx.api.health import router as health_router
 from ragx.api.keys import router as keys_router
-from ragx.api.tenant import router as tenant_router
-
-
 from ragx.api.middleware import RequestContextMiddleware
+from ragx.api.tenant import router as tenant_router
 from ragx.config import Settings, get_settings
 from ragx.db.session import create_engine, create_session_factory
 from ragx.errors import RagxError
@@ -26,19 +24,20 @@ from ragx.logging import configure_logging, get_logger
 
 log = get_logger(__name__)
 
-def _error_response(status_code : int, code : str, message : str) -> JSONResponse:
+
+def _error_response(status_code: int, code: str, message: str) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
         content={"error": {"code": code, "message": message}},
     )
 
 
-def create_app(settings : Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings)
 
     @asynccontextmanager
-    async def lifespan(app : FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         engine = create_engine(settings)
         app.state.session_factory = create_session_factory(engine)
         app.state.settings = settings
@@ -48,10 +47,10 @@ def create_app(settings : Settings | None = None) -> FastAPI:
         log.info("app_stopped")
 
     app = FastAPI(
-          title=settings.app_name,
-          debug=settings.debug,
-          lifespan=lifespan,
-      )
+        title=settings.app_name,
+        debug=settings.debug,
+        lifespan=lifespan,
+    )
 
     app.add_middleware(RequestContextMiddleware)
     app.include_router(health_router)
@@ -60,7 +59,7 @@ def create_app(settings : Settings | None = None) -> FastAPI:
     app.include_router(tenant_router)
 
     @app.exception_handler(RagxError)
-    async def handle_domain_error(request: Request, exc: RagxError) ->JSONResponse:
+    async def handle_domain_error(request: Request, exc: RagxError) -> JSONResponse:
         log.warning("request_failed", code=exc.code, error=exc.message)
         return _error_response(exc.status_code, exc.code, exc.message)
 
@@ -72,6 +71,5 @@ def create_app(settings : Settings | None = None) -> FastAPI:
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:
         return _error_response(exc.status_code, "http_error", str(exc.detail))
-
 
     return app

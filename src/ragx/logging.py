@@ -17,34 +17,35 @@ from ragx.config import Environment, Settings
 
 get_logger = structlog.get_logger
 
-def configure_logging(settings : Settings) -> None:
-    shared_processors :list[structlog.typing.Processor] = [
+
+def configure_logging(settings: Settings) -> None:
+    shared_processors: list[structlog.typing.Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
-        structlog.processors.TimeStamper(fmt="iso",utc=True)
+        structlog.processors.TimeStamper(fmt="iso", utc=True),
     ]
 
     renderer: structlog.typing.Processor
     if settings.environment is Environment.PRODUCTION:
-      shared_processors.append(structlog.processors.dict_tracebacks)
-      renderer = structlog.processors.JSONRenderer()
+        shared_processors.append(structlog.processors.dict_tracebacks)
+        renderer = structlog.processors.JSONRenderer()
     else:
-      renderer = structlog.dev.ConsoleRenderer()
+        renderer = structlog.dev.ConsoleRenderer()
 
     """here are the global rules for what happens when our code calls log.info(...)."""
     structlog.configure(
-       processors=[
-          *shared_processors,
-          structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-       ],
+        processors=[
+            *shared_processors,
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
         wrapper_class=structlog.stdlib.BoundLogger,
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
 
     formatter = structlog.stdlib.ProcessorFormatter(
-       foreign_pre_chain=shared_processors,
+        foreign_pre_chain=shared_processors,
         processors=[
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
             renderer,
@@ -60,6 +61,6 @@ def configure_logging(settings : Settings) -> None:
     root.setLevel(settings.log_level)
 
     for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
-          uvicorn_logger = logging.getLogger(name)
-          uvicorn_logger.handlers.clear()
-          uvicorn_logger.propagate = True
+        uvicorn_logger = logging.getLogger(name)
+        uvicorn_logger.handlers.clear()
+        uvicorn_logger.propagate = True

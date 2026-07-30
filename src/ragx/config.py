@@ -6,6 +6,7 @@ refuses to boot on invalid config) and are immutable afterwards.
 
 from enum import StrEnum
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, model_validator
@@ -13,9 +14,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Environment(StrEnum):
-    DEVELOPMENT= "development"
-    TEST="test"
-    PRODUCTION="production"
+    DEVELOPMENT = "development"
+    TEST = "test"
+    PRODUCTION = "production"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -26,26 +28,31 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
     )
 
-    app_name : str = "ragx"
+    app_name: str = "ragx"
     environment: Environment = Environment.DEVELOPMENT
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
     database_url: PostgresDsn = Field(
-            default="postgresql+asyncpg://ragx:ragx@localhost:5432/ragx",  # type: ignore[assignment]
-            description="Async SQLAlchemy DSN. Dev default matches docker-compose.",
-        )
+        default="postgresql+asyncpg://ragx:ragx@localhost:5432/ragx",  # type: ignore[assignment]
+        description="Async SQLAlchemy DSN. Dev default matches docker-compose.",
+    )
 
     redis_url: RedisDsn = Field(
-            default="redis://localhost:6379/0",  # type: ignore[assignment]
-            description="Broker/cache. Dev default matches docker-compose.",
-        )
+        default="redis://localhost:6379/0",  # type: ignore[assignment]
+        description="Broker/cache. Dev default matches docker-compose.",
+    )
 
-    secret_key : SecretStr = SecretStr("dev-insecure-secret-key")
-    access_token_expire_minutes : int = 60
+    storage_root: Path = Field(
+        default=Path("data"),
+        description="Root directory for the local blob-storage adapter.",
+    )
 
+    secret_key: SecretStr = SecretStr("dev-insecure-secret-key")
+    access_token_expire_minutes: int = 60
 
-    '''model validator checks the whole condition is true or false'''
+    """model validator checks the whole condition is true or false"""
+
     @model_validator(mode="after")
     def production_must_not_debug(self) -> Self:
         if self.environment is Environment.PRODUCTION and self.debug:
@@ -54,15 +61,17 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def production_needs_real_secret(self) -> Self:
-          if (
-              self.environment is Environment.PRODUCTION
-              and self.secret_key.get_secret_value() == "dev-insecure-secret-key"
-          ):
-              raise ValueError("RAGX_SECRET_KEY must be set to a real secret in production")
-          return self
+        if (
+            self.environment is Environment.PRODUCTION
+            and self.secret_key.get_secret_value() == "dev-insecure-secret-key"
+        ):
+            raise ValueError("RAGX_SECRET_KEY must be set to a real secret in production")
+        return self
 
-'''memoize the function thatwhy lru_cache'''
+
+"""memoize the function thatwhy lru_cache"""
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-

@@ -7,10 +7,12 @@ from ragx.api.deps import SessionDep
 
 router = APIRouter(tags=["health"])
 
+
 @router.get("/healthz")
-async def healthz() -> dict[str,str]:
+async def healthz() -> dict[str, str]:
     """Liveness: is the process running? Restart me if this fails."""
-    return {"status" : "ok"}
+    return {"status": "ok"}
+
 
 @router.get("/readyz")
 async def readyz(session: SessionDep, response: Response) -> dict[str, str]:
