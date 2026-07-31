@@ -122,3 +122,46 @@ async def upload_document(
         size_bytes=document.size_bytes,
     )
     return document
+
+
+async def list_documents(
+    session: AsyncSession,
+    ctx: TenantContext,
+    *,
+    kb_id: uuid.UUID,
+    limit: int,
+    offset: int,
+) -> list[Document]:
+    await get_knowledge_base(session, ctx, kb_id=kb_id)
+    result = await session.scalars(
+        select(Document)
+        .where(Document.kb_id == kb_id, Document.tenant_id == ctx.tenant_id)
+        .order_by(Document.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return list(result)
+
+
+async def get_document(
+    session: AsyncSession, ctx: TenantContext, *, document_id: uuid.UUID
+) -> Document:
+    document = await session.scalar(
+        select(Document).where(
+            Document.id == document_id, Document.tenant_id == ctx.tenant_id
+        )
+    )
+    if document is None:
+        raise NotFoundError("document not found")
+    return document
+
+
+async def delete_document(
+    session: AsyncSession, ctx: TenantContext, *, document_id: uuid.UUID
+) -> str:
+    document = await get_document(session, ctx, document_id=document_id)
+    storage_key = document.storage_key
+    await session.delete(document)
+    await session.flush()
+    log.info("document_deleted", document_id=str(document_id))
+    return storage_key

@@ -13,6 +13,8 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ragx.api.auth import router as auth_router
+from ragx.api.document import item_router as document_item_router
+from ragx.api.document import router as document_router
 from ragx.api.health import router as health_router
 from ragx.api.keys import router as keys_router
 from ragx.api.knowledge import router as knowledge_router
@@ -61,6 +63,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(keys_router)
     app.include_router(tenant_router)
     app.include_router(knowledge_router)
+    app.include_router(document_router)
+    app.include_router(document_item_router)
 
     @app.exception_handler(RagxError)
     async def handle_domain_error(request: Request, exc: RagxError) -> JSONResponse:

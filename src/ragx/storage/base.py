@@ -14,7 +14,7 @@ class BlobStorage(Protocol):
         """Persist the chunked stream under `key`, overwriting if present."""
         ...
 
-    def retrive(self, key: str) -> AsyncIterator[bytes]:
+    def retrieve(self, key: str) -> AsyncIterator[bytes]:
         """Return the object's bytes as a chunked stream. Raises if absent."""
         ...
 
