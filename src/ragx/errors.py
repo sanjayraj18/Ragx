@@ -30,3 +30,13 @@ class ConflictError(RagxError):
 class UnauthorizedError(RagxError):
     code = "unauthorized"
     status_code = 401
+
+
+class PayloadTooLargeError(RagxError):
+    code = "payload_too_large"
+    status_code = 413
+
+
+class UnsupportedMediaTypeError(RagxError):
+    code = "unsupported_media_type"
+    status_code = 415

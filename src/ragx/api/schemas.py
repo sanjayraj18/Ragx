@@ -5,9 +5,9 @@ what leaves — ORM objects never serialize directly (that is how password
 hashes leak)."""
 
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from datetime import datetime
 
 
 class RegisterRequest(BaseModel):
@@ -59,17 +59,29 @@ class TenantResponse(BaseModel):
     name: str
     is_active: bool
 
+
 class KnowledgeBaseCreateRequest(BaseModel):
-      name: str = Field(min_length=1, max_length=255)
-      description: str = Field(default="", max_length=2000)
+    name: str = Field(min_length=1, max_length=255)
+    description: str = Field(default="", max_length=2000)
+
 
 class KnowledgeBaseResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    description: str
+    chunk_size: int
+    chunk_overlap: int
+    embedding_model: str
+    created_at: datetime
+
+class DocumentResponse(BaseModel):
       model_config = ConfigDict(from_attributes=True)
 
       id: uuid.UUID
-      name: str
-      description: str
-      chunk_size: int
-      chunk_overlap: int
-      embedding_model: str
-      created_at: datetime
+      kb_id: uuid.UUID
+      filename: str
+      content_type: str
+      size_bytes: int
+      content_hash: str
