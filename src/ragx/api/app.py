@@ -15,7 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from ragx.api.auth import router as auth_router
 from ragx.api.health import router as health_router
 from ragx.api.keys import router as keys_router
-from ragx.api.knowledge  import router as knowledge_router
+from ragx.api.knowledge import router as knowledge_router
 from ragx.api.middleware import RequestContextMiddleware
 from ragx.api.tenant import router as tenant_router
 from ragx.config import Settings, get_settings

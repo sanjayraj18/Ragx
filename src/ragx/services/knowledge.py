@@ -4,6 +4,7 @@ is indistinguishable from nonexistence (404, never 403)."""
 
 import uuid
 from collections.abc import AsyncIterator
+from pathlib import PurePosixPath
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,12 +13,14 @@ from uuid_utils.compat import uuid7
 from ragx.context import TenantContext
 from ragx.db.models import KnowledgeBase
 from ragx.db.models.knowledge import Document
-from ragx.errors import ConflictError, NotFoundError
+from ragx.errors import ConflictError, NotFoundError, UnsupportedMediaTypeError
 from ragx.logging import get_logger
 from ragx.storage.base import BlobStorage
 from ragx.upload import UploadMeter
 
 log = get_logger(__name__)
+
+ALLOWED_CONTENT_TYPES = {"application/pdf", "text/plain", "text/markdown"}
 
 
 async def create_knowledge_base(
@@ -81,6 +84,8 @@ async def upload_document(
     max_upload_bytes: int,
 ) -> Document:
     kb = await get_knowledge_base(session, ctx, kb_id=kb_id)
+    if content_type not in ALLOWED_CONTENT_TYPES:
+        raise UnsupportedMediaTypeError(f"content type '{content_type}' is not accepted")
 
     document_id = uuid7()
     storage_key = f"tenants/{ctx.tenant_id}/documents/{document_id}"
@@ -100,8 +105,9 @@ async def upload_document(
 
     document = Document(
         id=document_id,
+        tenant_id=ctx.tenant_id,
         kb_id=kb.id,
-        filename=filename,
+        filename=PurePosixPath(filename).name or "upload",
         content_type=content_type,
         size_bytes=meter.size,
         content_hash=meter.content_hash,

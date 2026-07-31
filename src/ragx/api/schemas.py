@@ -9,6 +9,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from ragx.db.models.knowledge import DocumentStatus
+
 
 class RegisterRequest(BaseModel):
     tenant_name: str = Field(min_length=1, max_length=255)
@@ -77,11 +79,14 @@ class KnowledgeBaseResponse(BaseModel):
     created_at: datetime
 
 class DocumentResponse(BaseModel):
-      model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
-      id: uuid.UUID
-      kb_id: uuid.UUID
-      filename: str
-      content_type: str
-      size_bytes: int
-      content_hash: str
+    id: uuid.UUID
+    kb_id: uuid.UUID
+    filename: str
+    content_type: str
+    size_bytes: int
+    content_hash: str
+    status: DocumentStatus
+    error_message: str | None
+    created_at: datetime
