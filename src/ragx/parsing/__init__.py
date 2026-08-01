@@ -6,6 +6,7 @@ and parsing it can never drift apart."""
 
 from ragx.parsing.base import BlockType, ParsedBlock, ParsedDocument, Parser
 from ragx.parsing.markdown import MarkdownParser
+from ragx.parsing.pdf import PdfParser
 from ragx.parsing.plain_text import PlainTextParser
 
 __all__ = ["PARSERS", "BlockType", "ParsedBlock", "ParsedDocument", "Parser", "parser_for"]
@@ -13,6 +14,7 @@ __all__ = ["PARSERS", "BlockType", "ParsedBlock", "ParsedDocument", "Parser", "p
 PARSERS: dict[str, Parser] = {
     "text/plain": PlainTextParser(),
     "text/markdown": MarkdownParser(),
+    "application/pdf" : PdfParser()
 }
 
 

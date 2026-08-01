@@ -12,6 +12,7 @@ dependencies = [
     "pydantic-settings>=2.14.2",
     "pydantic[email]>=2.13.4",
     "pyjwt>=2.13.0",
+    "pymupdf>=1.28.0",
     "python-multipart>=0.0.32",
     "sqlalchemy>=2.0.51",
     "structlog>=26.1.0",
@@ -54,6 +55,10 @@ mypy_path = "src"
 packages = ["ragx"]
 pretty = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+  module = "pymupdf"
+  ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
