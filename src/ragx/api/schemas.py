@@ -78,6 +78,7 @@ class KnowledgeBaseResponse(BaseModel):
     embedding_model: str
     created_at: datetime
 
+
 class DocumentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

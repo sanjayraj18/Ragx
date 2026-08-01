@@ -15,12 +15,13 @@ from ragx.db.models import KnowledgeBase
 from ragx.db.models.knowledge import Document
 from ragx.errors import ConflictError, NotFoundError, UnsupportedMediaTypeError
 from ragx.logging import get_logger
+from ragx.parsing import PARSERS
 from ragx.storage.base import BlobStorage
 from ragx.upload import UploadMeter
 
 log = get_logger(__name__)
 
-ALLOWED_CONTENT_TYPES = {"application/pdf", "text/plain", "text/markdown"}
+ALLOWED_CONTENT_TYPES = frozenset(PARSERS)
 
 
 async def create_knowledge_base(
@@ -147,9 +148,7 @@ async def get_document(
     session: AsyncSession, ctx: TenantContext, *, document_id: uuid.UUID
 ) -> Document:
     document = await session.scalar(
-        select(Document).where(
-            Document.id == document_id, Document.tenant_id == ctx.tenant_id
-        )
+        select(Document).where(Document.id == document_id, Document.tenant_id == ctx.tenant_id)
     )
     if document is None:
         raise NotFoundError("document not found")
