@@ -8,7 +8,7 @@ import uuid
 from collections.abc import AsyncIterator
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Query, UploadFile, background, status
 from fastapi.responses import StreamingResponse
 
 from ragx.api.deps import SessionDep, SettingsDep, StorageDep, TenantContextDep
@@ -30,6 +30,10 @@ async def _stream(file: UploadFile) -> AsyncIterator[bytes]:
     while chunk := await file.read(_CHUNK_SIZE):
         yield chunk
 
+def _enqueue_ingest(document_id : str) ->None:
+    from ragx.worker.celery_app import celery_app
+    celery_app.send_task("ragx.worker.tasks.ingest_document", args=[document_id])
+
 
 @router.post("/{kb_id}/documents", status_code=status.HTTP_201_CREATED)
 async def upload(
@@ -50,6 +54,7 @@ async def upload(
         data=_stream(file),
         max_upload_bytes=settings.max_upload_size_mb * 1024 * 1024,
     )
+    background.add_task(_enqueue_ingest, str(document.id))
     return DocumentResponse.model_validate(document)
 
 

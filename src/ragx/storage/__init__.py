@@ -5,5 +5,6 @@ Consumers import only BlobStorage — the interface. Concrete adapters
 app lifespan and injected; nothing above this package names an adapter."""
 
 from ragx.storage.base import BlobStorage
+from ragx.storage.local import LocalStorage
 
-__all__ = ["BlobStorage"]
+__all__ = ["BlobStorage", "LocalStorage"]
