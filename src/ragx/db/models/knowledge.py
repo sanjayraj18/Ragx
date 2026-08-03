@@ -4,7 +4,7 @@ must be uniform within them (chunking, embedding model)."""
 import uuid
 from enum import StrEnum
 
-from sqlalchemy import BigInteger, Enum, ForeignKey, String, UniqueConstraint
+from sqlalchemy import BigInteger, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from uuid_utils.compat import uuid7
 
@@ -54,3 +54,20 @@ class Document(Base, TimestampMixin):
         default=DocumentStatus.PENDING,
     )
     error_message: Mapped[str | None] = mapped_column(String(2000), default=None)
+
+class Chunk(Base, TimestampMixin):
+      __tablename__ = "chunks"
+      __table_args__ = (UniqueConstraint("document_id", "position"),)
+
+      id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid7)
+      tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), index=True)
+      kb_id: Mapped[uuid.UUID] = mapped_column(
+          ForeignKey("knowledge_bases.id", ondelete="CASCADE"), index=True
+      )
+      document_id: Mapped[uuid.UUID] = mapped_column(
+          ForeignKey("documents.id", ondelete="CASCADE"), index=True
+      )
+      position: Mapped[int]
+      text: Mapped[str] = mapped_column(Text)
+      page_start: Mapped[int | None] = mapped_column(default=None)
+      page_end: Mapped[int | None] = mapped_column(default=None)
