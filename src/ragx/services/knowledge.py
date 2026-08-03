@@ -12,7 +12,7 @@ from uuid_utils.compat import uuid7
 
 from ragx.context import TenantContext
 from ragx.db.models import KnowledgeBase
-from ragx.db.models.knowledge import Document
+from ragx.db.models.knowledge import Chunk, Document, DocumentStatus
 from ragx.errors import ConflictError, NotFoundError, UnsupportedMediaTypeError
 from ragx.logging import get_logger
 from ragx.parsing import PARSERS
@@ -164,3 +164,22 @@ async def delete_document(
     await session.flush()
     log.info("document_deleted", document_id=str(document_id))
     return storage_key
+
+async def list_chunks(session, ctx, *, document_id, limit, offset) -> list[Chunk]:
+    await get_document(session, ctx, document_id=document_id)   # ownership check
+    result = await session.scalars(
+        select(Chunk)
+        .where(Chunk.document_id == document_id, Chunk.tenant_id == ctx.tenant_id)
+        .order_by(Chunk.position)
+        .limit(limit).offset(offset)
+    )
+    return list(result)
+
+async def request_reingest(session, ctx, *, document_id) -> Document:
+    document = await get_document(session, ctx, document_id=document_id)   # ownership check
+    if document.status is DocumentStatus.PARSING:
+        raise ConflictError("ingestion is already in progress")           # the guard → 409
+    document.status = DocumentStatus.PENDING
+    document.error_message = None
+    await session.flush()
+    return document

@@ -12,11 +12,13 @@ from fastapi import APIRouter, BackgroundTasks, Query, UploadFile, background, s
 from fastapi.responses import StreamingResponse
 
 from ragx.api.deps import SessionDep, SettingsDep, StorageDep, TenantContextDep
-from ragx.api.schemas import DocumentResponse
+from ragx.api.schemas import ChunkResponse, DocumentResponse
 from ragx.services.knowledge import (
     delete_document,
     get_document,
+    list_chunks,
     list_documents,
+    request_reingest,
     upload_document,
 )
 
@@ -43,6 +45,7 @@ async def upload(
     session: SessionDep,
     storage: StorageDep,
     settings: SettingsDep,
+    background : BackgroundTasks
 ) -> DocumentResponse:
     document = await upload_document(
         session,
@@ -107,3 +110,16 @@ async def delete_doc(
 ) -> None:
     storage_key = await delete_document(session, ctx, document_id=document_id)
     background.add_task(storage.delete, storage_key)
+
+
+@item_router.get("/{document_id}/chunks")
+async def list_document_chunks(document_id, ctx, session, limit=50, offset=0) -> list[ChunkResponse]:
+      chunks = await list_chunks(session, ctx, document_id=document_id, limit=limit, offset=offset)
+      return [ChunkResponse.model_validate(c) for c in chunks]
+
+
+@item_router.post("/{document_id}/reingest", status_code=status.HTTP_202_ACCEPTED)
+async def reingest(document_id, ctx, session, background: BackgroundTasks) -> DocumentResponse:
+      document = await request_reingest(session, ctx, document_id=document_id)
+      background.add_task(_enqueue_ingest, str(document.id))     # ← same seam as upload
+      return DocumentResponse.model_validate(document)

@@ -91,3 +91,11 @@ class DocumentResponse(BaseModel):
     status: DocumentStatus
     error_message: str | None
     created_at: datetime
+
+class ChunkResponse(BaseModel):
+      model_config = ConfigDict(from_attributes=True)
+      id: uuid.UUID
+      position: int
+      text: str
+      page_start: int | None
+      page_end: int | None
