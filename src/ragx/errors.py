@@ -40,3 +40,7 @@ class PayloadTooLargeError(RagxError):
 class UnsupportedMediaTypeError(RagxError):
     code = "unsupported_media_type"
     status_code = 415
+
+class EmbeddingError(RagxError):
+    code = "embedding_failed"
+    status_code = 502
