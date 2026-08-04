@@ -6,6 +6,7 @@ parse errors go straight to FAILED — retrying a corrupt PDF re-fails."""
 import asyncio
 import uuid
 
+import httpx
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -13,6 +14,7 @@ from ragx.chunking import default_chunker
 from ragx.config import get_settings
 from ragx.db.models.knowledge import Chunk, Document, DocumentStatus, KnowledgeBase
 from ragx.db.session import create_engine, create_session_factory
+from ragx.embeddings import EMBEDDING_DIMENSION, provider_for
 from ragx.logging import configure_logging, get_logger
 from ragx.parsing import parser_for
 from ragx.storage.local import LocalStorage
@@ -82,11 +84,59 @@ async def _ingest(document_id: uuid.UUID) -> None:
             document.status = DocumentStatus.CHUNKED
             await session.commit()
             log.info("document_chunked", document_id=str(document.id), chunks=len(drafts))
-        except (ConnectionError, OSError):
-            raise  # transient — let Celery's autoretry handle it
+
+            await _embed_pending(session, document, kb.embedding_model)
+        except (ConnectionError, OSError, httpx.TimeoutException, httpx.TransportError):
+            raise  # transient — Celery retries; NULL-bookkeeping makes the retry cheap
         except Exception as exc:
             await session.rollback()
             document.status = DocumentStatus.FAILED
             document.error_message = str(exc)[:2000]
             await session.commit()
             log.error("document_ingest_failed", document_id=str(document.id), error=str(exc))
+
+
+_EMBED_BATCH = 64
+
+
+async def _embed_pending(  # type: ignore[no-untyped-def]
+    session, document, embedding_model: str
+) -> None:
+    settings = get_settings()
+    provider = provider_for(embedding_model, settings)
+    if provider.dimension != EMBEDDING_DIMENSION:
+        raise ValueError(
+            f"model '{embedding_model}' produces {provider.dimension}-dim vectors; "
+            f"column stores {EMBEDDING_DIMENSION}"
+        )
+
+    document.status = DocumentStatus.EMBEDDING
+    await session.commit()
+
+    embedded_total = 0
+    while True:
+        pending = list(
+            await session.scalars(
+                select(Chunk)
+                .where(Chunk.document_id == document.id, Chunk.embedding.is_(None))
+                .order_by(Chunk.position)
+                .limit(_EMBED_BATCH)
+            )
+        )
+        if not pending:
+            break
+        vectors = await provider.embed_batch([c.text for c in pending])
+        for chunk, vector in zip(pending, vectors, strict=True):
+            chunk.embedding = vector
+        await session.commit()  # ← the checkpoint: this batch is safe forever
+        embedded_total += len(pending)
+        log.info(
+            "chunks_embedded",
+            document_id=str(document.id),
+            batch=len(pending),
+            total=embedded_total,
+        )
+
+    document.status = DocumentStatus.READY
+    await session.commit()
+    log.info("document_ready", document_id=str(document.id))
