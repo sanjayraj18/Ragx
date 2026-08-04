@@ -13,4 +13,6 @@ class ChunkDraft:
 
 
 class Chunker(Protocol):
-    def chunk(self, document: ParsedDocument, *, chunk_size: int, chunk_overlap: int) -> list[ChunkDraft]: ...
+    def chunk(
+        self, document: ParsedDocument, *, chunk_size: int, chunk_overlap: int
+    ) -> list[ChunkDraft]: ...

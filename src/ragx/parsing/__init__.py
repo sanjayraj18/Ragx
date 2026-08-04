@@ -16,9 +16,9 @@ __all__ = ["PARSERS", "BlockType", "ParsedBlock", "ParsedDocument", "Parser", "p
 PARSERS: dict[str, Parser] = {
     "text/plain": PlainTextParser(),
     "text/markdown": MarkdownParser(),
-    "application/pdf" : PdfParser(),
-    "text/html" : HtmlParser(),
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":DocxParser()
+    "application/pdf": PdfParser(),
+    "text/html": HtmlParser(),
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": DocxParser(),
 }
 
 

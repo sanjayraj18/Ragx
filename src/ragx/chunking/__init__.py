@@ -1,7 +1,8 @@
-from ragx.chunking.base import Chunker, ChunkDraft
+from ragx.chunking.base import ChunkDraft, Chunker
 from ragx.chunking.block_chunker import BlockChunker
 
-__all__ = ["BlockChunker", "Chunker", "ChunkDraft", "default_chunker"]
+__all__ = ["BlockChunker", "ChunkDraft", "Chunker", "default_chunker"]
+
 
 def default_chunker() -> Chunker:
     return BlockChunker()

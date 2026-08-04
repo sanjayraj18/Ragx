@@ -6,7 +6,9 @@ services:
       POSTGRES_PASSWORD: ragx
       POSTGRES_DB: ragx
     ports:
-      - "5432:5432"
+      - "5433:5432"
+    volumes:
+      - ragx_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ragx -d ragx"]
       interval: 5s
@@ -17,8 +19,14 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    volumes:
+      - ragx_redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+
+volumes:
+  ragx_pgdata:
+  ragx_redisdata:

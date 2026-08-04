@@ -12,6 +12,7 @@ dependencies = [
     "fastapi>=0.140.0",
     "greenlet>=3.5.4",
     "httpx>=0.28.1",
+    "pgvector>=0.5.0",
     "pydantic-settings>=2.14.2",
     "pydantic[email]>=2.13.4",
     "pyjwt>=2.13.0",
@@ -73,6 +74,10 @@ plugins = ["pydantic.mypy"]
   module = "celery.*"
   ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+    module = "pgvector.*"
+    ignore_missing_imports = true
+    
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers -m 'not integration'"

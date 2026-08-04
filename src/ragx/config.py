@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     environment: Environment = Environment.DEVELOPMENT
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    openai_api_key: SecretStr | None = None 
+    openai_api_key: SecretStr | None = None
 
     database_url: PostgresDsn = Field(
         default="postgresql+asyncpg://ragx:ragx@localhost:5432/ragx",  # type: ignore[assignment]

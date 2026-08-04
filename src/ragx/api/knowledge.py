@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import APIRouter, status
 
-from ragx.api.deps import SessionDep, TenantContextDep
+from ragx.api.deps import SessionDep, SettingsDep, TenantContextDep
 from ragx.api.schemas import KnowledgeBaseCreateRequest, KnowledgeBaseResponse
 from ragx.services.knowledge import (
     create_knowledge_base,
@@ -18,9 +18,19 @@ router = APIRouter(prefix="/v1/knowledge-bases", tags=["knowledge-bases"])
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_kb(
-    body: KnowledgeBaseCreateRequest, ctx: TenantContextDep, session: SessionDep
+    body: KnowledgeBaseCreateRequest,
+    ctx: TenantContextDep,
+    session: SessionDep,
+    settings: SettingsDep,
 ) -> KnowledgeBaseResponse:
-    kb = await create_knowledge_base(session, ctx, name=body.name, description=body.description)
+    kb = await create_knowledge_base(
+        session,
+        ctx,
+        settings,
+        name=body.name,
+        description=body.description,
+        embedding_model=body.embedding_model,
+    )
     return KnowledgeBaseResponse.model_validate(kb)
 
 

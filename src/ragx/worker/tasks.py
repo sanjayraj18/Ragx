@@ -1,7 +1,7 @@
 """The ingestion task: blob → parse → chunk → rows, walking the status
-  machine. Idempotent by delete-and-reinsert: an at-least-once redelivery
-  converges instead of duplicating. Transient errors retry with backoff;
-  parse errors go straight to FAILED — retrying a corrupt PDF re-fails."""
+machine. Idempotent by delete-and-reinsert: an at-least-once redelivery
+converges instead of duplicating. Transient errors retry with backoff;
+parse errors go straight to FAILED — retrying a corrupt PDF re-fails."""
 
 import asyncio
 import uuid
@@ -16,11 +16,12 @@ from ragx.db.session import create_engine, create_session_factory
 from ragx.logging import configure_logging, get_logger
 from ragx.parsing import parser_for
 from ragx.storage.local import LocalStorage
-from ragx.worker import celery_app
+from ragx.worker.celery_app import celery_app
 
 log = get_logger(__name__)
 
-_engine = AsyncEngine | None = None
+_engine: AsyncEngine | None = None
+
 
 def _get_engine() -> AsyncEngine:
     global _engine
@@ -29,17 +30,19 @@ def _get_engine() -> AsyncEngine:
         _engine = create_engine(get_settings())
     return _engine
 
-@celery_app.task(
-  bind=True,
-  autoretry_for=(ConnectionError, OSError),
-  etry_backoff=True,
-  retry_backoff_max=60,
-  max_retries=3
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    autoretry_for=(ConnectionError, OSError),
+    retry_backoff=True,
+    retry_backoff_max=60,
+    max_retries=3,
 )
-def ingest_document(self, document_id : str) ->None : # type: ignore[no-untyped-def]
+def ingest_document(self, document_id: str) -> None:  # type: ignore[no-untyped-def]
     asyncio.run(_ingest(uuid.UUID(document_id)))
 
-async def _ingest(document_id : uuid.UUID) ->None:
+
+async def _ingest(document_id: uuid.UUID) -> None:
     settings = get_settings()
     storage = LocalStorage(root=settings.storage_root)
     factory = create_session_factory(_get_engine())
@@ -49,9 +52,7 @@ async def _ingest(document_id : uuid.UUID) ->None:
         if document is None:
             log.warning("ingest_document_missing", document_id=str(document_id))
             return
-        kb = await session.scalar(
-            select(KnowledgeBase).where(KnowledgeBase.id == document.kb_id)
-        )
+        kb = await session.scalar(select(KnowledgeBase).where(KnowledgeBase.id == document.kb_id))
         assert kb is not None  # FK guarantees it
 
         document.status = DocumentStatus.PARSING
@@ -59,33 +60,33 @@ async def _ingest(document_id : uuid.UUID) ->None:
         await session.commit()
 
         try:
-            data =b"".join([c async for c in storage.retrieve(document.storage_key)])
-            parser = parser_for(document.content_type).parse(data)
+            data = b"".join([c async for c in storage.retrieve(document.storage_key)])
+            parsed = parser_for(document.content_type).parse(data)
             drafts = default_chunker().chunk(
-                parser,chunk_size=..., chunk_overlap=...
+                parsed, chunk_size=kb.chunk_size, chunk_overlap=kb.chunk_overlap
             )
 
-            await session.excute(delete(Chunk).where(Chunk.document_id == document_id))
+            await session.execute(delete(Chunk).where(Chunk.document_id == document_id))
             session.add_all(
                 Chunk(
-                    tenant_id=document.tenant_id,                                                                                                                   
-                    kb_id=document.kb_id,                                                                                                                           
-                    document_id=document.id,                                                                                                                        
-                    position=d.position,                                                                                                                            
-                    text=d.text,                                                                                                                                    
-                    page_start=d.page_start,                                                                                                                        
+                    tenant_id=document.tenant_id,
+                    kb_id=document.kb_id,
+                    document_id=document.id,
+                    position=d.position,
+                    text=d.text,
+                    page_start=d.page_start,
                     page_end=d.page_end,
                 )
                 for d in drafts
             )
-            document.status = DocumentStatus.CHUNKED 
+            document.status = DocumentStatus.CHUNKED
             await session.commit()
-            log.info("document_chunked", document_id=str(document.id), chunks=len(drafts))  
+            log.info("document_chunked", document_id=str(document.id), chunks=len(drafts))
         except (ConnectionError, OSError):
-            raise  # transient — let Celery's autoretry handle it 
+            raise  # transient — let Celery's autoretry handle it
         except Exception as exc:
-            await session._rollback()
+            await session.rollback()
             document.status = DocumentStatus.FAILED
             document.error_message = str(exc)[:2000]
             await session.commit()
-            log.error("document_ingest_failed", document_id=str(document.id), error=str(exc)) 
+            log.error("document_ingest_failed", document_id=str(document.id), error=str(exc))

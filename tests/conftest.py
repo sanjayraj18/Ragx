@@ -8,7 +8,6 @@ infrastructure; integration-marked tests expect `docker compose up -d`.
 from collections.abc import Iterator
 
 import pytest
-
 from fastapi.testclient import TestClient
 
 from ragx.api.app import create_app

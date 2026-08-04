@@ -1,8 +1,8 @@
 """DOCX: a zip of XML where structure is declared, not inferred.
 
-  Word kept the meaning PDF compiled away — headings say they are headings,
-  tables are real objects. The mirror-image price: no pages (pagination in
-  Word is a rendering artifact), so page stays None."""
+Word kept the meaning PDF compiled away — headings say they are headings,
+tables are real objects. The mirror-image price: no pages (pagination in
+Word is a rendering artifact), so page stays None."""
 
 import io
 
@@ -11,6 +11,7 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 
 from ragx.parsing.base import BlockType, ParsedBlock, ParsedDocument
+
 
 class DocxParser:
     def parse(self, data: bytes) -> ParsedDocument:
@@ -27,17 +28,14 @@ class DocxParser:
                     suffix = style.split()[-1]
                     level = int(suffix) if suffix.isdigit() else 1
                     blocks.append(
-                          ParsedBlock(text=text, type=BlockType.HEADING, heading_level=level)
-                      )
+                        ParsedBlock(text=text, type=BlockType.HEADING, heading_level=level)
+                    )
                 elif style.startswith("List"):
                     blocks.append(ParsedBlock(text=text, type=BlockType.LIST_ITEM))
                 else:
                     blocks.append(ParsedBlock(text=text))
             elif isinstance(item, Table):
-                rows = [
-                    " | ".join(cell.text.strip() for cell in row.cells)
-                    for row in item.rows
-                  ]
+                rows = [" | ".join(cell.text.strip() for cell in row.cells) for row in item.rows]
                 table_text = "\n".join(row for row in rows if row.strip(" |"))
                 if table_text:
                     blocks.append(ParsedBlock(text=table_text, type=BlockType.TABLE))

@@ -65,6 +65,7 @@ class TenantResponse(BaseModel):
 class KnowledgeBaseCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     description: str = Field(default="", max_length=2000)
+    embedding_model: str = Field(default="openai/text-embedding-3-small", max_length=255)
 
 
 class KnowledgeBaseResponse(BaseModel):
@@ -92,10 +93,11 @@ class DocumentResponse(BaseModel):
     error_message: str | None
     created_at: datetime
 
+
 class ChunkResponse(BaseModel):
-      model_config = ConfigDict(from_attributes=True)
-      id: uuid.UUID
-      position: int
-      text: str
-      page_start: int | None
-      page_end: int | None
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    position: int
+    text: str
+    page_start: int | None
+    page_end: int | None

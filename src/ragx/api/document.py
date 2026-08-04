@@ -8,7 +8,7 @@ import uuid
 from collections.abc import AsyncIterator
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Query, UploadFile, background, status
+from fastapi import APIRouter, BackgroundTasks, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 
 from ragx.api.deps import SessionDep, SettingsDep, StorageDep, TenantContextDep
@@ -32,8 +32,10 @@ async def _stream(file: UploadFile) -> AsyncIterator[bytes]:
     while chunk := await file.read(_CHUNK_SIZE):
         yield chunk
 
-def _enqueue_ingest(document_id : str) ->None:
+
+def _enqueue_ingest(document_id: str) -> None:
     from ragx.worker.celery_app import celery_app
+
     celery_app.send_task("ragx.worker.tasks.ingest_document", args=[document_id])
 
 
@@ -45,7 +47,7 @@ async def upload(
     session: SessionDep,
     storage: StorageDep,
     settings: SettingsDep,
-    background : BackgroundTasks
+    background: BackgroundTasks,
 ) -> DocumentResponse:
     document = await upload_document(
         session,
@@ -113,13 +115,24 @@ async def delete_doc(
 
 
 @item_router.get("/{document_id}/chunks")
-async def list_document_chunks(document_id, ctx, session, limit=50, offset=0) -> list[ChunkResponse]:
-      chunks = await list_chunks(session, ctx, document_id=document_id, limit=limit, offset=offset)
-      return [ChunkResponse.model_validate(c) for c in chunks]
+async def list_document_chunks(
+    document_id: uuid.UUID,
+    ctx: TenantContextDep,
+    session: SessionDep,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[ChunkResponse]:
+    chunks = await list_chunks(session, ctx, document_id=document_id, limit=limit, offset=offset)
+    return [ChunkResponse.model_validate(c) for c in chunks]
 
 
 @item_router.post("/{document_id}/reingest", status_code=status.HTTP_202_ACCEPTED)
-async def reingest(document_id, ctx, session, background: BackgroundTasks) -> DocumentResponse:
-      document = await request_reingest(session, ctx, document_id=document_id)
-      background.add_task(_enqueue_ingest, str(document.id))     # ← same seam as upload
-      return DocumentResponse.model_validate(document)
+async def reingest(
+    document_id: uuid.UUID,
+    ctx: TenantContextDep,
+    session: SessionDep,
+    background: BackgroundTasks,
+) -> DocumentResponse:
+    document = await request_reingest(session, ctx, document_id=document_id)
+    background.add_task(_enqueue_ingest, str(document.id))  # ← same seam as upload
+    return DocumentResponse.model_validate(document)

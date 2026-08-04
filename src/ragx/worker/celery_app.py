@@ -4,11 +4,7 @@ from ragx.config import get_settings
 
 settings = get_settings()
 
-celery_app = Celery(
-    "ragx",
-    broker=str(settings.redis_url),
-    include=["ragx.worker.tasks"]
-)
+celery_app = Celery("ragx", broker=str(settings.redis_url), include=["ragx.worker.tasks"])
 
 celery_app.conf.update(
     # at-least-once delivery: a message survives its worker's death
