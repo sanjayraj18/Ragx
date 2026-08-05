@@ -5,12 +5,13 @@ import uuid
 from fastapi import APIRouter, status
 
 from ragx.api.deps import SessionDep, SettingsDep, TenantContextDep
-from ragx.api.schemas import KnowledgeBaseCreateRequest, KnowledgeBaseResponse
+from ragx.api.schemas import KnowledgeBaseCreateRequest, KnowledgeBaseResponse,SearchRequest, SearchResult
 from ragx.services.knowledge import (
     create_knowledge_base,
     delete_knowledge_base,
     get_knowledge_base,
     list_knowledge_bases,
+    search_chunks,
 )
 
 router = APIRouter(prefix="/v1/knowledge-bases", tags=["knowledge-bases"])
@@ -51,3 +52,27 @@ async def get_kb(
 @router.delete("/{kb_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_kb(kb_id: uuid.UUID, ctx: TenantContextDep, session: SessionDep) -> None:
     await delete_knowledge_base(session, ctx, kb_id=kb_id)
+
+@router.post("/{kb_id}/search")
+async def search_kb(
+      kb_id: uuid.UUID,
+      body: SearchRequest,
+      ctx: TenantContextDep,
+      session: SessionDep,
+      settings: SettingsDep,
+  ) -> list[SearchResult]:
+      results = await search_chunks(
+          session, ctx, settings, kb_id=kb_id, query=body.query, limit=body.limit
+      )
+      return [
+          SearchResult(
+              chunk_id=chunk.id,
+              document_id=chunk.document_id,
+              position=chunk.position,
+              text=chunk.text,
+              page_start=chunk.page_start,
+              page_end=chunk.page_end,
+              score=1.0 - distance,
+          )
+          for chunk, distance in results
+      ]

@@ -215,3 +215,19 @@ async def request_reingest(
     document.error_message = None
     await session.flush()
     return document
+
+async def search_chunks(session : AsyncSession, ctx : TenantContext, settings : Settings, *, kb_id : uuid.UUID, query:str, limit : int) -> list[tuple[Chunk, float]]:
+    kb = await get_knowledge_base(session, ctx, kb_id=kb_id)
+    provider = provider_for(kb.embedding_model, settings)
+    query_vector = (await provider.embed_batch([query]))[0]
+
+    distance = Chunk.embedding.cosine_distance(query_vector)
+    result = await session.execute(
+        select(Chunk, distance.label("distance")).where(
+            Chunk.kb_id == kb.id,
+            Chunk.tenant_id == ctx.tenant_id,
+            Chunk.embedding.is_not(None)
+        ).order_by(distance).limit(limit)
+    )
+
+    return [(chunk, dist) for chunk, dist in result.all()]
