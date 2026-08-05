@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
 
     max_upload_size_mb: int = 50
+    reranker_model: str = "fake/overlap"
 
     """model validator checks the whole condition is true or false"""
 
