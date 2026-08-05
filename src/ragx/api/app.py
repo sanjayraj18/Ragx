@@ -19,6 +19,7 @@ from ragx.api.health import router as health_router
 from ragx.api.keys import router as keys_router
 from ragx.api.knowledge import router as knowledge_router
 from ragx.api.middleware import RequestContextMiddleware
+from ragx.api.retrieval import router as retrieval_router
 from ragx.api.tenant import router as tenant_router
 from ragx.config import Settings, get_settings
 from ragx.db.session import create_engine, create_session_factory
@@ -63,6 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(keys_router)
     app.include_router(tenant_router)
     app.include_router(knowledge_router)
+    app.include_router(retrieval_router)
     app.include_router(document_router)
     app.include_router(document_item_router)
 

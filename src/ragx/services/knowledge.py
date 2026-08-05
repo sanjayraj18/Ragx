@@ -18,6 +18,7 @@ from ragx.embeddings import EMBEDDING_DIMENSION, provider_for
 from ragx.errors import ConflictError, NotFoundError, UnsupportedMediaTypeError
 from ragx.logging import get_logger
 from ragx.parsing import PARSERS
+from ragx.reranking import reranker_for
 from ragx.storage.base import BlobStorage
 from ragx.upload import UploadMeter
 
@@ -26,7 +27,7 @@ log = get_logger(__name__)
 ALLOWED_CONTENT_TYPES = frozenset(PARSERS)
 
 _RRF_K = 60
-_CANDIDATE_POOL = 50
+CANDIDATE_POOL = 50
 
 
 async def create_knowledge_base(
@@ -280,10 +281,10 @@ async def hybrid_search_chunks(
     limit: int,
 ) -> list[tuple[Chunk, float]]:
     dense = await vector_search_chunks(
-        session, ctx, settings, kb_id=kb_id, query=query, limit=_CANDIDATE_POOL
+        session, ctx, settings, kb_id=kb_id, query=query, limit=CANDIDATE_POOL
     )
     lexical = await keyword_search_chunks(
-        session, ctx, kb_id=kb_id, query=query, limit=_CANDIDATE_POOL
+        session, ctx, kb_id=kb_id, query=query, limit=CANDIDATE_POOL
     )
 
     fused: dict[uuid.UUID, float] = {}
@@ -295,3 +296,22 @@ async def hybrid_search_chunks(
 
     top = sorted(fused.items(), key=lambda item: item[1], reverse=True)[:limit]
     return [(chunks[chunk_id], score) for chunk_id, score in top]
+
+
+async def rerank_chunks(
+    settings: Settings,
+    *,
+    query: str,
+    candidates: list[tuple[Chunk, float]],
+    limit: int,
+) -> list[tuple[Chunk, float]]:
+    if not candidates:
+        return []
+    reranker = reranker_for(settings.reranker_model, settings)
+    scores = await reranker.rerank(query, [chunk.text for chunk, _ in candidates])
+    rescored = sorted(
+        zip((c for c, _ in candidates), scores, strict=True),
+        key=lambda pair: pair[1],
+        reverse=True,
+    )
+    return rescored[:limit]

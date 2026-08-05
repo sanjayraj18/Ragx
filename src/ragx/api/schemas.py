@@ -103,6 +103,7 @@ class ChunkResponse(BaseModel):
     page_start: int | None
     page_end: int | None
 
+
 class SearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000)
     limit: int = Field(default=10, ge=1, le=50)
@@ -110,10 +111,38 @@ class SearchRequest(BaseModel):
 
 
 class SearchResult(BaseModel):
-      chunk_id: uuid.UUID
-      document_id: uuid.UUID
-      position: int
-      text: str
-      page_start: int | None
-      page_end: int
-      score: float
+    chunk_id: uuid.UUID
+    document_id: uuid.UUID
+    position: int
+    text: str
+    page_start: int | None
+    page_end: int
+    score: float
+
+
+class RetrievalRequest(BaseModel):
+    kb_id: uuid.UUID
+    query: str = Field(min_length=1, max_length=2000)
+    k: int = Field(default=8, ge=1, le=50)
+    mode: Literal["vector", "keyword", "hybrid"] = "hybrid"
+    rerank: bool = False
+
+
+class RetrievalResult(BaseModel):
+    chunk_id: uuid.UUID
+    document_id: uuid.UUID
+    filename: str
+    content_type: str
+    position: int
+    text: str
+    page_start: int | None
+    page_end: int | None
+    score: float
+
+
+class RetrievalResponse(BaseModel):
+    results: list[RetrievalResult]
+    query: str
+    mode: str
+    reranked: bool
+    took_ms: int
