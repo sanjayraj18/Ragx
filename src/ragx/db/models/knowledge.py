@@ -5,7 +5,8 @@ import uuid
 from enum import StrEnum
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import BigInteger, Enum, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Computed, Enum, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 from uuid_utils.compat import uuid7
 
@@ -59,7 +60,10 @@ class Document(Base, TimestampMixin):
 
 class Chunk(Base, TimestampMixin):
     __tablename__ = "chunks"
-    __table_args__ = (UniqueConstraint("document_id", "position"),)
+    __table_args__ = (
+        UniqueConstraint("document_id", "position"),
+        Index("ix_chunks_text_search", "text_search", postgresql_using="gin"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), index=True)
@@ -74,3 +78,6 @@ class Chunk(Base, TimestampMixin):
     page_start: Mapped[int | None] = mapped_column(default=None)
     page_end: Mapped[int | None] = mapped_column(default=None)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), default=None)
+    text_search: Mapped[str] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('english', text)", persisted=True)
+    )

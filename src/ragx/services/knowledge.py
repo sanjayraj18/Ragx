@@ -6,7 +6,7 @@ import uuid
 from collections.abc import AsyncIterator
 from pathlib import PurePosixPath
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid_utils.compat import uuid7
 
@@ -216,18 +216,52 @@ async def request_reingest(
     await session.flush()
     return document
 
-async def search_chunks(session : AsyncSession, ctx : TenantContext, settings : Settings, *, kb_id : uuid.UUID, query:str, limit : int) -> list[tuple[Chunk, float]]:
+async def vector_search_chunks(
+    session: AsyncSession,
+    ctx: TenantContext,
+    settings: Settings,
+    *,
+    kb_id: uuid.UUID,
+    query: str,
+    limit: int,
+) -> list[tuple[Chunk, float]]:
     kb = await get_knowledge_base(session, ctx, kb_id=kb_id)
     provider = provider_for(kb.embedding_model, settings)
     query_vector = (await provider.embed_batch([query]))[0]
 
     distance = Chunk.embedding.cosine_distance(query_vector)
     result = await session.execute(
-        select(Chunk, distance.label("distance")).where(
+        select(Chunk, distance.label("distance"))
+        .where(
             Chunk.kb_id == kb.id,
             Chunk.tenant_id == ctx.tenant_id,
-            Chunk.embedding.is_not(None)
-        ).order_by(distance).limit(limit)
+            Chunk.embedding.is_not(None),
+        )
+        .order_by(distance)
+        .limit(limit)
     )
-
     return [(chunk, dist) for chunk, dist in result.all()]
+
+
+async def keyword_search_chunks(
+    session: AsyncSession,
+    ctx: TenantContext,
+    *,
+    kb_id: uuid.UUID,
+    query: str,
+    limit: int,
+) -> list[tuple[Chunk, float]]:
+    await get_knowledge_base(session, ctx, kb_id=kb_id)
+    tsquery = func.websearch_to_tsquery("english", query)
+    rank = func.ts_rank(Chunk.text_search, tsquery)
+    result = await session.execute(
+        select(Chunk, rank.label("rank"))
+        .where(
+            Chunk.kb_id == kb_id,
+            Chunk.tenant_id == ctx.tenant_id,
+            Chunk.text_search.op("@@")(tsquery),
+        )
+        .order_by(rank.desc())
+        .limit(limit)
+    )
+    return [(chunk, score) for chunk, score in result.all()]

@@ -113,5 +113,5 @@ class SearchResult(BaseModel):
       position: int
       text: str
       page_start: int | None
-      page_end: int 
+      page_end: int
       score: float

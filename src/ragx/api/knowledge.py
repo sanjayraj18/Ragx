@@ -5,13 +5,18 @@ import uuid
 from fastapi import APIRouter, status
 
 from ragx.api.deps import SessionDep, SettingsDep, TenantContextDep
-from ragx.api.schemas import KnowledgeBaseCreateRequest, KnowledgeBaseResponse,SearchRequest, SearchResult
+from ragx.api.schemas import (
+    KnowledgeBaseCreateRequest,
+    KnowledgeBaseResponse,
+    SearchRequest,
+    SearchResult,
+)
 from ragx.services.knowledge import (
     create_knowledge_base,
     delete_knowledge_base,
     get_knowledge_base,
     list_knowledge_bases,
-    search_chunks,
+    vector_search_chunks,
 )
 
 router = APIRouter(prefix="/v1/knowledge-bases", tags=["knowledge-bases"])
@@ -61,7 +66,7 @@ async def search_kb(
       session: SessionDep,
       settings: SettingsDep,
   ) -> list[SearchResult]:
-      results = await search_chunks(
+      results = await vector_search_chunks(
           session, ctx, settings, kb_id=kb_id, query=body.query, limit=body.limit
       )
       return [
