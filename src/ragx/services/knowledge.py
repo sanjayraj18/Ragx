@@ -25,6 +25,9 @@ log = get_logger(__name__)
 
 ALLOWED_CONTENT_TYPES = frozenset(PARSERS)
 
+_RRF_K = 60
+_CANDIDATE_POOL = 50
+
 
 async def create_knowledge_base(
     session: AsyncSession,
@@ -265,3 +268,30 @@ async def keyword_search_chunks(
         .limit(limit)
     )
     return [(chunk, score) for chunk, score in result.all()]
+
+
+async def hybrid_search_chunks(
+    session: AsyncSession,
+    ctx: TenantContext,
+    settings: Settings,
+    *,
+    kb_id: uuid.UUID,
+    query: str,
+    limit: int,
+) -> list[tuple[Chunk, float]]:
+    dense = await vector_search_chunks(
+        session, ctx, settings, kb_id=kb_id, query=query, limit=_CANDIDATE_POOL
+    )
+    lexical = await keyword_search_chunks(
+        session, ctx, kb_id=kb_id, query=query, limit=_CANDIDATE_POOL
+    )
+
+    fused: dict[uuid.UUID, float] = {}
+    chunks: dict[uuid.UUID, Chunk] = {}
+    for ranking in (dense, lexical):
+        for rank, (chunk, _score) in enumerate(ranking, start=1):
+            fused[chunk.id] = fused.get(chunk.id, 0.0) + 1.0 / (_RRF_K + rank)
+            chunks[chunk.id] = chunk
+
+    top = sorted(fused.items(), key=lambda item: item[1], reverse=True)[:limit]
+    return [(chunks[chunk_id], score) for chunk_id, score in top]

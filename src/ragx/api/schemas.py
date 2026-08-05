@@ -6,6 +6,7 @@ hashes leak)."""
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -105,6 +106,7 @@ class ChunkResponse(BaseModel):
 class SearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000)
     limit: int = Field(default=10, ge=1, le=50)
+    mode: Literal["vector", "keyword", "hybrid"] = "hybrid"
 
 
 class SearchResult(BaseModel):

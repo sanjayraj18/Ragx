@@ -15,6 +15,8 @@ from ragx.services.knowledge import (
     create_knowledge_base,
     delete_knowledge_base,
     get_knowledge_base,
+    hybrid_search_chunks,
+    keyword_search_chunks,
     list_knowledge_bases,
     vector_search_chunks,
 )
@@ -60,24 +62,36 @@ async def delete_kb(kb_id: uuid.UUID, ctx: TenantContextDep, session: SessionDep
 
 @router.post("/{kb_id}/search")
 async def search_kb(
-      kb_id: uuid.UUID,
-      body: SearchRequest,
-      ctx: TenantContextDep,
-      session: SessionDep,
-      settings: SettingsDep,
-  ) -> list[SearchResult]:
-      results = await vector_search_chunks(
-          session, ctx, settings, kb_id=kb_id, query=body.query, limit=body.limit
-      )
-      return [
-          SearchResult(
-              chunk_id=chunk.id,
-              document_id=chunk.document_id,
-              position=chunk.position,
-              text=chunk.text,
-              page_start=chunk.page_start,
-              page_end=chunk.page_end,
-              score=1.0 - distance,
-          )
-          for chunk, distance in results
-      ]
+    kb_id: uuid.UUID,
+    body: SearchRequest,
+    ctx: TenantContextDep,
+    session: SessionDep,
+    settings: SettingsDep,
+) -> list[SearchResult]:
+    if body.mode == "vector":
+        results = await vector_search_chunks(
+            session, ctx, settings, kb_id=kb_id, query=body.query, limit=body.limit
+        )
+        # vector returns cosine DISTANCE (0 = identical) → flip to similarity
+        results = [(chunk, 1.0 - value) for chunk, value in results]
+    elif body.mode == "keyword":
+        results = await keyword_search_chunks(
+            session, ctx, kb_id=kb_id, query=body.query, limit=body.limit
+        )
+    else:
+        results = await hybrid_search_chunks(
+            session, ctx, settings, kb_id=kb_id, query=body.query, limit=body.limit
+        )
+
+    return [
+        SearchResult(
+            chunk_id=chunk.id,
+            document_id=chunk.document_id,
+            position=chunk.position,
+            text=chunk.text,
+            page_start=chunk.page_start,
+            page_end=chunk.page_end,
+            score=score,
+        )
+        for chunk, score in results
+    ]
